@@ -1,0 +1,29 @@
+{
+  "name": "migueles-backend",
+  "version": "1.0.0",
+  "description": "Backend API para rastreo en tiempo real — Migueles Corp",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "migrate": "node -e \"import('fs').then(fs=>Promise.all(['sql/001_init.sql','sql/002_seq.sql'].map(f=>fs.readFile(f,'utf8')))).then(([a,b])=>{import('pg').then(pg=>{const c=new pg.Client(process.env.DATABASE_URL||'postgres://postgres:postgres@db:5432/migueles');c.connect().then(()=>c.query(a)).then(()=>c.query(b)).then(()=>{console.log('✅ Migraciones ok');c.end()}).catch(e=>{console.error(e);process.exit(1)})})})\"",
+    "vercel-build": "npm i -D @types/pg && npm run build"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.12.12",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  },
+  "engines": { "node": ">=18.x" },
+  "license": "MIT"
+}
