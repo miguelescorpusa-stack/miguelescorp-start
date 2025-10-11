@@ -1,9 +1,22 @@
 {
   "version": 2,
   "builds": [
-    { "src": "src/index.ts", "use": "@vercel/node", "config": { "includeFiles": ["sql/**"] } }
+    {
+      "src": "src/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["sql/**"]
+      }
+    }
   ],
   "routes": [
     { "src": "/(.*)", "dest": "src/index.ts" }
-  ]
+  ],
+  "functions": {
+    "src/index.ts": {
+      "runtime": "nodejs20.x",
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  }
 }
