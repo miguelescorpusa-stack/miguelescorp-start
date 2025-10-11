@@ -1,25 +1,27 @@
-import "dotenv/config";
-import express from "express";
-import cors from "cors";
-import http from "http";
-import shipments from "./routes/shipments.js";
-import { attachSockets } from "./sockets.js";
-import driverRoutes from "./routes/driver.js";
+// ... imports existentes
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+import { pool } from "./db.js";
 
-const app = express();
-app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
-app.use(express.json());
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-app.get("/health", (_req, res) => res.json({ status: "ok" }));
-app.get("/", (_req, res) => res.json({ ok: true, service: "Migueles Backend", docs: "/health" }));
-
-// HTTP + WebSocket
-const server = http.createServer(app);
-const { emitLocation } = attachSockets(server);
-
-// Rutas API
-app.use("/api/shipments", shipments);
-app.use("/api/driver", driverRoutes(emitLocation));
-
-const PORT = Number(process.env.PORT || 3000);
-server.listen(PORT, () => console.log(`🚚 API on http://localhost:${PORT}`));
+// --- Ruta protegida para correr migraciones una sola vez ---
+app.post("/admin/migrate", async (req, res) => {
+  try {
+    const auth = req.headers.authorization || "";
+    const token = auth.replace("Bearer ", "");
+    if (!token || token !== process.env.ADMIN_TOKEN) {
+      return res.status(401).json({ error: "unauthorized" });
+    }
+    const sql1 = await fs.readFile(path.join(__dirname, "../sql/001_init.sql"), "utf8");
+    const sql2 = await fs.readFile(path.join(__dirname, "../sql/002_seq.sql"), "utf8");
+    await pool.query(sql1);
+    await pool.query(sql2);
+    return res.json({ ok: true, migrated: true });
+  } catch (e:any) {
+    console.error(e);
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+});
