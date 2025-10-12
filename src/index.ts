@@ -12,7 +12,7 @@ const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(express.json());
 
-/** Home HTML */
+/** Home */
 app.get("/", (_req, res) => {
   res.send(`
     <h1>Migueles Backend</h1>
@@ -31,11 +31,11 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "Migueles Backend", docs: "/health" });
 });
 
-/** Rutas API */
+/** API */
 app.use("/api/shipments", shipments);
 app.use("/api/driver", driver);
 
-/** Ruta protegida para migraciones (una sola vez) */
+/** Migraciones protegidas */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -61,4 +61,3 @@ app.post("/admin/migrate", async (req, res) => {
 });
 
 export default app;
-
