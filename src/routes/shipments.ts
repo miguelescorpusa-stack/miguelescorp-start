@@ -24,7 +24,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-/** Obtener tracking simple (estado + última ubicación) */
+/** Tracking simple (estado + última ubicación) */
 router.get("/:ref_code/track", async (req, res) => {
   try {
     const { ref_code } = req.params;
@@ -46,7 +46,7 @@ router.get("/:ref_code/track", async (req, res) => {
   }
 });
 
-/** Obtener detalle del envío (raw) */
+/** Detalle raw del envío */
 router.get("/:ref_code", async (req, res) => {
   try {
     const { ref_code } = req.params;
