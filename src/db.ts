@@ -7,7 +7,7 @@ export const pool = new Pool({
   ssl:
     DATABASE_URL.includes("neon.tech") ||
     DATABASE_URL.includes("supabase.co") ||
-    DATABASE_URL.includes("sslmode=require")
+    DATABASE_URL.toLowerCase().includes("sslmode=require")
       ? { rejectUnauthorized: false }
       : undefined
 });
