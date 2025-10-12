@@ -1,12 +1,12 @@
 {
   "version": 2,
+  "installCommand": "npm install",
+  "buildCommand": "echo skip build",
   "builds": [
     {
       "src": "src/index.ts",
       "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["sql/**"]
-      }
+      "config": { "includeFiles": ["sql/**"] }
     }
   ],
   "routes": [
