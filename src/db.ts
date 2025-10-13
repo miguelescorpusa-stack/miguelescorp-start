@@ -1,12 +1,10 @@
 import { Pool } from "pg";
 
-const connectionString =
-  process.env.DATABASE_URL ||
-  (() => {
-    throw new Error("DATABASE_URL is missing");
-  })();
+const connectionString = process.env.DATABASE_URL;
 
 export const pool = new Pool({
   connectionString,
-  ssl: { rejectUnauthorized: false }, // Neon requiere SSL
+  ssl: connectionString?.includes("sslmode=require")
+    ? { rejectUnauthorized: false }
+    : undefined
 });
