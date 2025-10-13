@@ -1,16 +1,37 @@
 import express from "express";
 import cors from "cors";
+import shipments from "./routes/shipments";
+import drivers from "./routes/driver";
 
 const app = express();
-app.use(express.json());
-app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 
+// CORS
+const origin = process.env.CORS_ORIGIN || "*";
+app.use(cors({ origin }));
+app.use(express.json());
+
+// Health
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "Migueles Backend", docs: "/health" });
 });
 
-app.get("/", (_req, res) => {
-  res.status(200).send("Migueles Backend – OK");
+// Admin: simple ping para validar token (útil si luego añadimos migraciones)
+app.get("/admin/ping", (req, res) => {
+  const token = (req.headers.authorization || "").replace("Bearer ", "");
+  if (!process.env.ADMIN_TOKEN || token !== process.env.ADMIN_TOKEN) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  res.json({ ok: true, admin: true });
 });
 
-export default app; // necesario para @vercel/node
+// Rutas API
+app.use("/api/shipments", shipments);
+app.use("/api/drivers", drivers);
+
+// raíz
+app.get("/", (_req, res) => {
+  res.type("text").send("Migueles Backend – OK");
+});
+
+// Export para Vercel
+export default app;
