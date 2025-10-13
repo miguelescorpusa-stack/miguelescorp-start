@@ -1,63 +1,79 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
+import { Pool } from "pg";
 
-import { pool } from "./db.js";
-import shipments from "./routes/shipments.js";
-import driver from "./routes/driver.js";
+// ---- Config ----
+const PORT = Number(process.env.PORT || 3000);
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
+const DATABASE_URL = process.env.DATABASE_URL || "";
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 
+// ---- DB ----
+const pool = DATABASE_URL
+  ? new Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } })
+  : (null as unknown as Pool);
+
+// ---- App ----
 const app = express();
-app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(express.json());
+app.use(cors({ origin: CORS_ORIGIN }));
 
-/** Home */
-app.get("/", (_req, res) => {
-  res.send(`
-    <h1>Migueles Backend</h1>
-    <p>🚀 API en funcionamiento.</p>
-    <ul>
-      <li><a href="/health">/health</a></li>
-      <li>POST /api/shipments</li>
-      <li>GET /api/shipments/:ref_code/track</li>
-      <li>POST /api/driver/location</li>
-    </ul>
-  `);
-});
-
-/** Health */
-app.get("/health", (_req, res) => {
+app.get("/health", (_req: Request, res: Response) => {
   res.json({ ok: true, service: "Migueles Backend", docs: "/health" });
 });
 
-/** API */
-app.use("/api/shipments", shipments);
-app.use("/api/driver", driver);
-
-/** Migraciones protegidas */
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-app.post("/admin/migrate", async (req, res) => {
+// Ejemplo de endpoint protegido para correr migraciones simples (opcional)
+app.post("/admin/migrate", async (req: Request, res: Response) => {
   try {
     const auth = req.headers.authorization || "";
     const token = auth.replace("Bearer ", "");
-    if (!token || token !== process.env.ADMIN_TOKEN) {
+    if (!ADMIN_TOKEN || token !== ADMIN_TOKEN) {
       return res.status(401).json({ error: "unauthorized" });
     }
+    if (!pool) return res.status(200).json({ ok: true, note: "DB not configured" });
 
-    const initSQL = await fs.readFile(path.join(__dirname, "../sql/001_init.sql"), "utf8");
-    const seqSQL  = await fs.readFile(path.join(__dirname, "../sql/002_seq.sql"), "utf8");
+    // Crea tablas mínimas si no existen
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS shipments (
+        id SERIAL PRIMARY KEY,
+        ref_code TEXT UNIQUE,
+        pickup_address JSONB,
+        delivery_address JSONB,
+        status TEXT DEFAULT 'created',
+        eta TEXT,
+        assigned_driver TEXT,
+        created_at TIMESTAMPTZ DEFAULT now()
+      );
+      CREATE TABLE IF NOT EXISTS locations (
+        id SERIAL PRIMARY KEY,
+        shipment_ref TEXT,
+        lat FLOAT,
+        lon FLOAT,
+        ts TIMESTAMPTZ DEFAULT now()
+      );
+    `);
 
-    await pool.query(initSQL);
-    await pool.query(seqSQL);
+    // Secuencia MC-00xxx si no existe
+    await pool.query(`
+      CREATE SEQUENCE IF NOT EXISTS mc_ref_seq START 201;
+    `);
 
-    return res.json({ ok: true, migrated: true });
-  } catch (e: any) {
-    console.error(e);
-    return res.status(500).json({ ok: false, error: e.message });
+    res.json({ ok: true, migrated: true });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: "migration_failed", detail: err?.message });
   }
 });
 
+// 404 friendly
+app.use((req, res) => {
+  res.status(404).json({ error: "not_found", path: req.path });
+});
+
+// Export para Vercel
 export default app;
+
+// Soporte local (npm run dev)
+if (process.env.VERCEL !== "1") {
+  app.listen(PORT, () => console.log(`API local en http://localhost:${PORT}`));
+}
