@@ -1,13 +1,12 @@
-import pkg from "pg";
-const { Pool } = pkg;
+import { Pool } from "pg";
 
-const DATABASE_URL = process.env.DATABASE_URL!;
+const connectionString =
+  process.env.DATABASE_URL ||
+  (() => {
+    throw new Error("DATABASE_URL is missing");
+  })();
+
 export const pool = new Pool({
-  connectionString: DATABASE_URL,
-  ssl:
-    DATABASE_URL.includes("neon.tech") ||
-    DATABASE_URL.includes("supabase.co") ||
-    DATABASE_URL.toLowerCase().includes("sslmode=require")
-      ? { rejectUnauthorized: false }
-      : undefined
+  connectionString,
+  ssl: { rejectUnauthorized: false }, // Neon requiere SSL
 });
