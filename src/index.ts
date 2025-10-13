@@ -1,29 +1,26 @@
+// src/index.ts
 import express from "express";
 import cors from "cors";
-import drivers from "./routes/driver.js";
-import shipments from "./routes/shipments.js";
 
 const app = express();
-
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(express.json());
 
+// Raíz estable (no toca DB)
 app.get("/", (_req, res) => {
-  res.type("text/plain").send("Migueles Backend – OK");
+  res.type("text/plain").send("Migueles Backend — OK");
 });
 
+// Health estable (no toca DB)
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "Migueles Backend", docs: "/health" });
 });
 
-app.use("/drivers", drivers);
-app.use("/shipments", shipments);
+// (Deja las rutas reales para después de confirmar que esto funciona)
+// import shipments from "./routes/shipments.js";
+// import driver from "./routes/driver.js";
+// app.use("/api/shipments", shipments);
+// app.use("/api/driver", driver);
 
-const port = Number(process.env.PORT || 3000);
-if (process.env.VERCEL !== "1") {
-  app.listen(port, () => {
-    console.log(`API local en http://localhost:${port}`);
-  });
-}
-
-export { app };
+// Necesario para Vercel (@vercel/node)
+export default app;
