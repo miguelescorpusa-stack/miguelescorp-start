@@ -10,3 +10,4 @@
 ```bash
 curl -X POST https://TU-PROYECTO.vercel.app/admin/migrate \
   -H "Authorization: Bearer TU_ADMIN_TOKEN"
+## Deploy – forzando producción (commit gatillo)
