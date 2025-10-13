@@ -1,24 +1,36 @@
 import { Router } from "express";
-import { pool } from "../db.js";
+import { pool } from "../db";
 
 const router = Router();
 
-/** Registrar/simular ubicación del conductor */
-router.post("/location", async (req, res) => {
+/** Crear driver */
+router.post("/", async (req, res) => {
   try {
-    const { ref_code, lat, lon } = req.body || {};
-    if (!ref_code || typeof lat !== "number" || typeof lon !== "number") {
-      return res.status(400).json({ error: "ref_code, lat, lon son requeridos" });
-    }
+    const { name, phone } = req.body || {};
+    if (!name) return res.status(400).json({ error: "name requerido" });
 
-    await pool.query(
-      `INSERT INTO locations (shipment_ref, lat, lon) VALUES ($1,$2,$3)`,
-      [ref_code, lat, lon]
-    );
+    const q = `
+      INSERT INTO drivers (name, phone)
+      VALUES ($1, $2)
+      RETURNING id, name, phone, active, created_at
+    `;
+    const { rows } = await pool.query(q, [name, phone || null]);
+    res.status(201).json(rows[0]);
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: "driver_create_failed" });
+  }
+});
 
-    return res.json({ ok: true });
-  } catch (e: any) {
-    return res.status(500).json({ ok: false, error: e.message });
+/** Listar drivers activos */
+router.get("/", async (_req, res) => {
+  try {
+    const q = `SELECT id, name, phone, active, created_at FROM drivers WHERE active = TRUE ORDER BY id DESC`;
+    const { rows } = await pool.query(q);
+    res.json(rows);
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: "drivers_list_failed" });
   }
 });
 
