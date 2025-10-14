@@ -7,28 +7,21 @@ if (!connectionString) {
   throw new Error('DATABASE_URL no está definido en las variables de entorno.');
 }
 
-// Muchos proveedores (Neon) requieren SSL, y a veces la cadena ya trae ?sslmode=require.
-// Forzamos SSL sin validar CA para entornos serverless.
-const needsSSL =
-  connectionString.includes('sslmode=require') ||
-  connectionString.includes('neon.tech');
-
-// Un pool pequeño funciona mejor en Vercel serverless.
-export const pool = new Pool({
+// Neon usa SSL. En serverless con Vercel, rechazamos CA.
+const pool = new Pool({
   connectionString,
-  ssl: needsSSL ? { rejectUnauthorized: false } : undefined,
-  max: 1,
+  ssl: { rejectUnauthorized: false },
+  max: 1, // pequeño para serverless
 });
 
 /**
- * Helper de consulta.
- * OJO: NO usa genéricos. Devuelve lo que `pg` devuelve.
+ * Helper de consulta. Devuelve exactamente lo que devuelve `pg`.
  */
 export async function query(text: string, params?: any[]) {
   const res = await pool.query(text, params);
   return res; // { rows, rowCount, ... }
 }
 
-// API simple por defecto para importar como `db`
+// Export por defecto para importar como `db`
 const db = { query };
 export default db;
