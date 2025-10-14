@@ -1,39 +1,31 @@
+// src/index.ts
 import express from 'express';
 import cors from 'cors';
 
-import shipmentsRouter from './routes/shipments.js';
-import driverRouter from './routes/driver.js';
+import shipmentsRouter from './routes/shipments.js'; // extensión .js obligatoria
+import driverRouter from './routes/driver.js';       // extensión .js obligatoria
+import { pingDb } from './db.js';
 
 const app = express();
 
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json());
 
-const origin = process.env.CORS_ORIGIN || '*';
-app.use(
-  cors({
-    origin: origin === '*' ? true : origin
-  })
-);
-
-// Salud del servicio
-app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'Migueles Backend', docs: '/health' });
+app.get('/', (_req, res) => {
+  res.send('Migueles Backend – OK');
 });
 
-// Ping a DB (útil para probar conexión)
-import { pingDb } from './db.js';
-app.get('/db-ping', async (_req, res) => {
+app.get('/health', async (_req, res) => {
   try {
-    const ok = await pingDb();
-    res.json({ ok });
-  } catch (e: any) {
-    res.status(500).json({ ok: false, error: e?.message });
+    const now = await pingDb();
+    res.json({ ok: true, service: 'Migueles Backend', docs: '/health', now: now.now });
+  } catch (err: any) {
+    console.error('Health error:', err);
+    res.status(500).json({ ok: false, error: err?.message || 'health_failed' });
   }
 });
 
-// Rutas de negocio
 app.use('/shipments', shipmentsRouter);
 app.use('/driver', driverRouter);
 
-// Export default para Serverless (Vercel)
 export default app;
