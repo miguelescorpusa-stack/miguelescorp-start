@@ -1,32 +1,19 @@
-// src/db.ts
-import { Pool } from "pg";
+import { Pool } from 'pg';
 
-let pool: Pool | null = null;
+const connectionString = process.env.DATABASE_URL;
 
-export function getPool() {
-  if (pool) return pool;
-
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    console.warn("DATABASE_URL no definida. La DB no se usará.");
-    // Creamos un pool “dummy” que lanza si se intenta usar sin URL.
-    throw new Error("DATABASE_URL missing");
-  }
-
-  // Neon requiere SSL. Con la URL que tiene ?sslmode=require basta,
-  // pero por si acaso añadimos ssl: true (no rompe si ya hay sslmode)
-  pool = new Pool({
-    connectionString: url,
-    ssl: { rejectUnauthorized: false },
-  });
-
-  return pool;
+if (!connectionString) {
+  throw new Error('DATABASE_URL no está configurada en las variables de entorno de Vercel.');
 }
 
-// helper simple
-export async function query<T = any>(text: string, params?: any[]) {
-  const p = getPool();
-  return p.query<T>(text, params);
+const pool = new Pool({
+  connectionString,
+  ssl: { rejectUnauthorized: false } // Neon requiere SSL
+});
+
+export async function pingDb(): Promise<boolean> {
+  const r = await pool.query('select 1 as ok');
+  return r.rows?.[0]?.ok === 1;
 }
 
-export default { getPool, query };
+export default pool;
