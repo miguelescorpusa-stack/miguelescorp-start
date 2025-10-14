@@ -1,46 +1,75 @@
-// src/index.ts
 import express from 'express';
 import cors from 'cors';
-
-// Routers (asegúrate que existen y exportan `export default router`)
-import driversRouter from './routes/driver.js';
-import shipmentsRouter from './routes/shipments.js';
+import { query } from './db';
 
 const app = express();
-
-// CORS
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN || '*',
-  })
-);
 app.use(express.json());
+app.use(cors());
 
-// ===== Rutas base =====
-app.get('/', (_req, res) => {
-  res.send('Migueles Backend — OK');
-});
-
-app.get('/health', (_req, res) => {
+// 🩺 Ruta de salud (verificación)
+app.get('/health', (req, res) => {
   res.json({ ok: true, service: 'Migueles Backend', docs: '/health' });
 });
 
-// ===== API =====
-app.use('/api/drivers', driversRouter);
-app.use('/api/shipments', shipmentsRouter);
-
-// ===== Admin (migraciones básicas, protegido por token) =====
-app.post('/admin/migrate', (req, res) => {
-  const auth = req.headers.authorization || '';
-  const token = auth.replace('Bearer ', '');
-
-  if (!process.env.ADMIN_TOKEN || token !== process.env.ADMIN_TOKEN) {
-    return res.status(401).json({ ok: false, error: 'unauthorized' });
+// 🚚 RUTA: Obtener todos los envíos
+app.get('/shipments', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM shipments ORDER BY created_at DESC');
+    res.json({ ok: true, shipments: result.rows });
+  } catch (err) {
+    console.error('Error al obtener shipments:', err);
+    res.status(500).json({ ok: false, error: 'database_error' });
   }
+});
 
-  // Aquí irían sentencias CREATE TABLE IF NOT EXISTS, etc.,
-  // usando tu helper de DB. Por ahora lo dejamos “no-op”.
-  return res.json({ ok: true, ran: [], note: 'migrations placeholder' });
+// 📍 RUTA: Obtener ubicaciones
+app.get('/locations', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM locations ORDER BY ts DESC');
+    res.json({ ok: true, locations: result.rows });
+  } catch (err) {
+    console.error('Error al obtener locations:', err);
+    res.status(500).json({ ok: false, error: 'database_error' });
+  }
+});
+
+// 👨‍✈️ RUTA: Obtener conductores
+app.get('/driver', async (req, res) => {
+  try {
+    const result = await query('SELECT * FROM drivers ORDER BY id ASC');
+    res.json({ ok: true, drivers: result.rows });
+  } catch (err) {
+    console.error('Error al obtener drivers:', err);
+    res.status(500).json({ ok: false, error: 'database_error' });
+  }
+});
+
+// 🌍 RUTA: Seguimiento por código de envío (para clientes)
+app.get('/track/:ref_code', async (req, res) => {
+  const { ref_code } = req.params;
+  try {
+    const shipment = await query(
+      'SELECT * FROM shipments WHERE ref_code = $1',
+      [ref_code]
+    );
+    if (shipment.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: 'shipment_not_found' });
+    }
+
+    const locations = await query(
+      'SELECT lat, lon, ts FROM locations WHERE shipment_ref = $1 ORDER BY ts DESC',
+      [ref_code]
+    );
+
+    res.json({
+      ok: true,
+      shipment: shipment.rows[0],
+      locations: locations.rows,
+    });
+  } catch (err) {
+    console.error('Error en /track/:ref_code:', err);
+    res.status(500).json({ ok: false, error: 'database_error' });
+  }
 });
 
 export default app;
