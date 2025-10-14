@@ -1,14 +1,17 @@
 import { Router } from "express";
-import { pool } from "../db.js";
+// 👇 Import local con .js (aunque este archivo sea .ts)
+import db from "../db.js";
 
 const router = Router();
 
+// Ejemplo básico: GET /shipments
 router.get("/", async (_req, res) => {
   try {
-    const { rows } = await pool.query("SELECT 'shipments ok' AS status");
-    res.json({ ok: true, status: rows[0].status });
+    const { rows } = await db.query("select 'shipments ok' as msg");
+    res.json({ ok: true, data: rows[0] });
   } catch (err) {
-    res.status(500).json({ ok: false, error: (err as Error).message });
+    console.error("shipments error", err);
+    res.status(500).json({ ok: false, error: "shipments_failed" });
   }
 });
 
