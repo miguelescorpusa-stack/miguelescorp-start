@@ -6,20 +6,19 @@ if (!connectionString) {
   throw new Error('Missing env.DATABASE_URL');
 }
 
-// Vercel + Neon necesitan SSL en Node
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
 });
 
-export async function query<T = any>(sql: string, params?: any[]) {
-  const { rows } = await pool.query<T>(sql, params);
+export async function query(sql: string, params?: any[]) {
+  // ⬇️ sin <T>, devolvemos rows sin genérico para evitar TS2347
+  const { rows } = await pool.query(sql, params);
   return rows;
 }
 
-// Ping de salud (NO se ejecuta en import, solo cuando lo llamamos)
 export async function pingDb() {
-  const rows = await query<{ now: string }>('SELECT NOW() as now');
+  const rows = await query('SELECT NOW() as now');
   return rows[0];
 }
 
