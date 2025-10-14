@@ -1,24 +1,28 @@
 {
   "name": "migueles-backend",
   "version": "1.0.0",
-  "description": "Backend Express-less (Serverless) para Migueles Corp en Vercel con Postgres (Neon)",
-  "main": "dist/index.js",
+  "private": true,
   "type": "module",
+  "description": "Backend Express para Migueles Corp en Vercel + Neon",
+  "engines": { "node": ">=18.x" },
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "tsc -w",
+    "dev": "ts-node --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "vercel-build": "tsc"
+    "vercel-build": "npm run build"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
     "pg": "^8.11.3"
   },
   "devDependencies": {
-    "typescript": "^5.2.2",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
     "@types/node": "^20.5.9",
-    "@types/pg": "^8.10.2"
-  },
-  "engines": {
-    "node": ">=18.x"
+    "@types/pg": "^8.10.2",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.4.5"
   }
 }
