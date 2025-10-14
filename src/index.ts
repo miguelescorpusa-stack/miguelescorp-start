@@ -1,4 +1,5 @@
-import express from 'express';
+// src/index.ts
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 
 import shipmentsRouter from './routes/shipments.js';
@@ -7,21 +8,24 @@ import driverRouter from './routes/driver.js';
 const app = express();
 app.use(express.json());
 
-const corsOrigin = process.env.CORS_ORIGIN || '*';
-app.use(cors({ origin: corsOrigin }));
+// CORS
+const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+app.use(cors({ origin: CORS_ORIGIN }));
 
-app.get('/health', (_req, res) => {
+// Salud
+app.get('/health', (_req: Request, res: Response) => {
   res.json({ ok: true, service: 'Migueles Backend', docs: '/health' });
 });
 
-app.use('/api/shipments', shipmentsRouter);
-app.use('/api/drivers', driverRouter);
+// Rutas
+app.use('/shipments', shipmentsRouter);
+app.use('/driver', driverRouter);
 
-const port = Number(process.env.PORT ?? 3000);
-if (process.env.VERCEL) {
-  export default app;
-} else {
-  app.listen(port, () => {
-    console.log(`Server listening on http://localhost:${port}`);
-  });
+// Exportar para Vercel
+export default app;
+
+// Arranque local (npm run dev)
+if (!process.env.VERCEL) {
+  const PORT = Number(process.env.PORT || 3000);
+  app.listen(PORT, () => console.log(`API local en http://localhost:${PORT}`));
 }
