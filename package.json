@@ -1,60 +1,24 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Migueles Backend — Estado</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f7f8fa;
-      color: #222;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      text-align: center;
-      margin: 0;
-    }
-    h1 {
-      color: #0070f3;
-      margin-bottom: 0.5em;
-    }
-    a {
-      display: block;
-      margin: 8px 0;
-      color: #0070f3;
-      text-decoration: none;
-      font-weight: 500;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    footer {
-      position: absolute;
-      bottom: 1em;
-      font-size: 0.85em;
-      color: #555;
-    }
-  </style>
-</head>
-<body>
-  <h1>🚀 Migueles Backend — OK</h1>
-  <p>Servidor en funcionamiento (modo Serverless)</p>
-
-  <div>
-    <a href="/health" target="_blank">Ver /health →</a>
-    <a href="/db-ping" target="_blank">Probar conexión a la base de datos →</a>
-    <a href="/admin/migrate" target="_blank">Ejecutar migración (requiere token) →</a>
-  </div>
-
-  <footer>
-    © <span id="year"></span> Migueles Corp | Vercel + NeonDB
-  </footer>
-
-  <script>
-    document.getElementById("year").textContent = new Date().getFullYear();
-  </script>
-</body>
-</html>
+{
+  "name": "migueles-backend",
+  "version": "1.0.0",
+  "description": "Backend Express-less (Serverless) para Migueles Corp en Vercel con Postgres (Neon)",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsc -w",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "vercel-build": "tsc"
+  },
+  "dependencies": {
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "@types/node": "^20.5.9",
+    "@types/pg": "^8.10.2"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}
