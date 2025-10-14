@@ -1,11 +1,16 @@
 import { Router } from 'express';
-import db from '../db.js';
+import db from '../db.js'; // 👈 Import con extensión .js obligatoria
 
 const router = Router();
 
 router.get('/', async (_req, res) => {
-  const { rows } = await db.query('select now() as now');
-  res.json({ drivers: [], now: rows[0].now });
+  try {
+    const { rows } = await db.query('SELECT now() AS now');
+    res.json({ ok: true, drivers: [], now: rows[0].now });
+  } catch (err: any) {
+    console.error('Error en /driver:', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 export default router;
