@@ -1,28 +1,19 @@
 // src/db.ts
 import { Pool } from 'pg';
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  // Si usas Neon, la cadena ya trae sslmode=require; si NO, descomenta:
-  // ssl: { rejectUnauthorized: false }
-});
-
-export type Row = Record<string, unknown>;
-
-/**
- * Query tipado. Permite usar genéricos: query<{ now: string }>('select now() as now');
- */
-export async function query<T extends Row = Row>(
-  text: string,
-  params: unknown[] = []
-): Promise<{ rows: T[] }> {
-  const res = await pool.query(text, params);
-  return { rows: res.rows as T[] };
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error('DATABASE_URL is not set');
 }
 
-/** Cierra el pool si alguna vez lo necesitas (no se usa en serverless normal). */
-export async function close(): Promise<void> {
-  await pool.end();
+// Vercel + Neon: SSL requerido
+const pool = new Pool({
+  connectionString,
+  ssl: { rejectUnauthorized: false }
+});
+
+async function query(text: string, params?: any[]) {
+  return pool.query(text, params);
 }
 
 export default { query };
