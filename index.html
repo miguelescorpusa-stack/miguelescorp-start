@@ -1,24 +1,60 @@
-// src/index.ts
-import express from "express";
-import cors from "cors";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Migueles Backend — Estado</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f8fa;
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      margin: 0;
+    }
+    h1 {
+      color: #0070f3;
+      margin-bottom: 0.5em;
+    }
+    a {
+      display: block;
+      margin: 8px 0;
+      color: #0070f3;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    footer {
+      position: absolute;
+      bottom: 1em;
+      font-size: 0.85em;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Migueles Backend — OK</h1>
+  <p>Servidor en funcionamiento (modo Serverless)</p>
 
-import driverRoutes from "./routes/driver.js";
-import shipmentRoutes from "./routes/shipments.js";
+  <div>
+    <a href="/health" target="_blank">Ver /health →</a>
+    <a href="/db-ping" target="_blank">Probar conexión a la base de datos →</a>
+    <a href="/admin/migrate" target="_blank">Ejecutar migración (requiere token) →</a>
+  </div>
 
-const app = express();
+  <footer>
+    © <span id="year"></span> Migueles Corp | Vercel + NeonDB
+  </footer>
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
-app.use(express.json());
-
-app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "Migueles Backend", docs: "/health" });
-});
-
-app.get("/", (_req, res) => {
-  res.type("text/plain").send("Migueles Backend — OK");
-});
-
-app.use("/drivers", driverRoutes);
-app.use("/shipments", shipmentRoutes);
-
-export default app;
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
