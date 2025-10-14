@@ -1,6 +1,5 @@
-// src/routes/shipments.ts
 import { Router } from 'express';
-import db from '../db.js'; // ¡OJO! extensión .js
+import db from '../db.js'; // ¡OJO: extensión .js!
 
 const router = Router();
 
