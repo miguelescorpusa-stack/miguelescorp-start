@@ -1,31 +1,46 @@
 // src/index.ts
-import express, { Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
 
+// Routers (asegúrate que existen y exportan `export default router`)
+import driversRouter from './routes/driver.js';
 import shipmentsRouter from './routes/shipments.js';
-import driverRouter from './routes/driver.js';
 
 const app = express();
-app.use(express.json());
 
 // CORS
-const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
-app.use(cors({ origin: CORS_ORIGIN }));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || '*',
+  })
+);
+app.use(express.json());
 
-// Salud
-app.get('/health', (_req: Request, res: Response) => {
+// ===== Rutas base =====
+app.get('/', (_req, res) => {
+  res.send('Migueles Backend — OK');
+});
+
+app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'Migueles Backend', docs: '/health' });
 });
 
-// Rutas
-app.use('/shipments', shipmentsRouter);
-app.use('/driver', driverRouter);
+// ===== API =====
+app.use('/api/drivers', driversRouter);
+app.use('/api/shipments', shipmentsRouter);
 
-// Exportar para Vercel
+// ===== Admin (migraciones básicas, protegido por token) =====
+app.post('/admin/migrate', (req, res) => {
+  const auth = req.headers.authorization || '';
+  const token = auth.replace('Bearer ', '');
+
+  if (!process.env.ADMIN_TOKEN || token !== process.env.ADMIN_TOKEN) {
+    return res.status(401).json({ ok: false, error: 'unauthorized' });
+  }
+
+  // Aquí irían sentencias CREATE TABLE IF NOT EXISTS, etc.,
+  // usando tu helper de DB. Por ahora lo dejamos “no-op”.
+  return res.json({ ok: true, ran: [], note: 'migrations placeholder' });
+});
+
 export default app;
-
-// Arranque local (npm run dev)
-if (!process.env.VERCEL) {
-  const PORT = Number(process.env.PORT || 3000);
-  app.listen(PORT, () => console.log(`API local en http://localhost:${PORT}`));
-}
