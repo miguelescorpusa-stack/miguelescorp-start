@@ -1,16 +1,11 @@
-import { Router } from "express";
+import { Router } from 'express';
+import db from '../db.js';
 
 const router = Router();
 
-router.get("/", async (_req, res) => {
-  try {
-    const { query } = await import("../db.js");
-    const { rows } = await query("select 'driver ok' as msg");
-    res.json({ ok: true, data: rows[0] });
-  } catch (err: any) {
-    console.error("drivers error", err?.message || err);
-    res.status(500).json({ ok: false, error: "drivers_failed" });
-  }
+router.get('/', async (_req, res) => {
+  const { rows } = await db.query('select now() as now');
+  res.json({ drivers: [], now: rows[0].now });
 });
 
 export default router;
