@@ -3,15 +3,14 @@ import cors from 'cors';
 import { query } from './db.js';
 
 const app = express();
-
 app.use(express.json());
 app.use(cors());
 
-// Página raíz (para abrir https://miguelescorp.com)
+// 🏁 Página principal (evita el "Cannot GET /")
 app.get('/', (_req, res) => {
   res.send(`
-    <h2>🚚 Migueles Corp Backend activo</h2>
-    <p>Endpoints útiles:</p>
+    <h2>🚚 Migueles Corp Backend Activo</h2>
+    <p>Endpoints disponibles:</p>
     <ul>
       <li><a href="/health">/health</a></li>
       <li><a href="/shipments">/shipments</a></li>
