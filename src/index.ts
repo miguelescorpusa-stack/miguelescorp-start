@@ -3,16 +3,31 @@ import cors from 'cors';
 import { query } from './db.js';
 
 const app = express();
+
 app.use(express.json());
 app.use(cors());
 
+// Página raíz (para abrir https://miguelescorp.com)
+app.get('/', (_req, res) => {
+  res.send(`
+    <h2>🚚 Migueles Corp Backend activo</h2>
+    <p>Endpoints útiles:</p>
+    <ul>
+      <li><a href="/health">/health</a></li>
+      <li><a href="/shipments">/shipments</a></li>
+      <li><a href="/locations">/locations</a></li>
+      <li><a href="/track/TEST-001">/track/TEST-001</a></li>
+    </ul>
+  `);
+});
+
 // 🩺 Ruta de salud (verificación)
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'Migueles Backend', docs: '/health' });
 });
 
 // 🚚 RUTA: Obtener todos los envíos
-app.get('/shipments', async (req, res) => {
+app.get('/shipments', async (_req, res) => {
   try {
     const result = await query('SELECT * FROM shipments ORDER BY created_at DESC');
     res.json({ ok: true, shipments: result.rows });
@@ -23,7 +38,7 @@ app.get('/shipments', async (req, res) => {
 });
 
 // 📍 RUTA: Obtener ubicaciones
-app.get('/locations', async (req, res) => {
+app.get('/locations', async (_req, res) => {
   try {
     const result = await query('SELECT * FROM locations ORDER BY ts DESC');
     res.json({ ok: true, locations: result.rows });
@@ -34,7 +49,7 @@ app.get('/locations', async (req, res) => {
 });
 
 // 👨‍✈️ RUTA: Obtener conductores
-app.get('/driver', async (req, res) => {
+app.get('/driver', async (_req, res) => {
   try {
     const result = await query('SELECT * FROM drivers ORDER BY id ASC');
     res.json({ ok: true, drivers: result.rows });
