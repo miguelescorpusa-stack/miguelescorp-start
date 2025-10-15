@@ -1,35 +1,36 @@
+// src/index.ts
 import express from 'express';
 import cors from 'cors';
 import { query } from './db.js';
 
 const app = express();
+
+// CORS abierto (si quieres, luego limitamos al dominio del front)
+app.use(cors());
 app.use(express.json());
 
-// 🔐 CORS mejorado: permite peticiones desde archivo local o tu dominio
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (!origin) return cb(null, true); // permite file://
-      const allowed = [
-        'https://miguelescorp.com',
-        'https://www.miguelescorp.com',
-        'http://localhost:5500',
-        'http://127.0.0.1:5500',
-        'http://localhost:3000'
-      ];
-      if (allowed.includes(origin)) return cb(null, true);
-      return cb(null, true); // temporal: permite todos los orígenes
-    },
-  })
-);
+// Home simple
+app.get('/', (_req, res) => {
+  res.send(`
+    <h2>🚚 Migueles Corp Backend Activo</h2>
+    <p>Endpoints disponibles:</p>
+    <ul>
+      <li><a href="/health">/health</a></li>
+      <li><a href="/shipments">/shipments</a></li>
+      <li><a href="/locations">/locations</a></li>
+      <li><a href="/driver">/driver</a></li>
+      <li><a href="/track/TEST-001">/track/TEST-001</a></li>
+    </ul>
+  `);
+});
 
-// 🩺 Ruta de salud (verificación)
-app.get('/health', (req, res) => {
+// Salud
+app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'Migueles Backend', docs: '/health' });
 });
 
-// 🚚 Obtener todos los envíos
-app.get('/shipments', async (req, res) => {
+// Envíos
+app.get('/shipments', async (_req, res) => {
   try {
     const result = await query('SELECT * FROM shipments ORDER BY created_at DESC');
     res.json({ ok: true, shipments: result.rows });
@@ -39,8 +40,8 @@ app.get('/shipments', async (req, res) => {
   }
 });
 
-// 📍 Obtener ubicaciones
-app.get('/locations', async (req, res) => {
+// Ubicaciones
+app.get('/locations', async (_req, res) => {
   try {
     const result = await query('SELECT * FROM locations ORDER BY ts DESC');
     res.json({ ok: true, locations: result.rows });
@@ -50,22 +51,25 @@ app.get('/locations', async (req, res) => {
   }
 });
 
-// 👨‍✈️ Obtener conductores
-app.get('/driver', async (req, res) => {
+// Conductores
+app.get('/driver', async (_req, res) => {
   try {
     const result = await query('SELECT * FROM drivers ORDER BY id ASC');
-    res.json({ ok: true, drivers: result.rows });
+  res.json({ ok: true, drivers: result.rows });
   } catch (err) {
     console.error('Error al obtener drivers:', err);
     res.status(500).json({ ok: false, error: 'database_error' });
   }
 });
 
-// 🌍 Rastreo por código de envío
+// Tracking por ref_code
 app.get('/track/:ref_code', async (req, res) => {
   const { ref_code } = req.params;
   try {
-    const shipment = await query('SELECT * FROM shipments WHERE ref_code = $1', [ref_code]);
+    const shipment = await query(
+      'SELECT * FROM shipments WHERE ref_code = $1',
+      [ref_code]
+    );
     if (shipment.rowCount === 0) {
       return res.status(404).json({ ok: false, error: 'shipment_not_found' });
     }
@@ -84,20 +88,6 @@ app.get('/track/:ref_code', async (req, res) => {
     console.error('Error en /track/:ref_code:', err);
     res.status(500).json({ ok: false, error: 'database_error' });
   }
-});
-
-// 🏠 Página raíz para probar el backend
-app.get('/', (_req, res) => {
-  res.send(`
-    <h2>🚚 MiguelesCorp Backend Activo</h2>
-    <p>Endpoints disponibles:</p>
-    <ul>
-      <li><a href="/health">/health</a></li>
-      <li><a href="/shipments">/shipments</a></li>
-      <li><a href="/locations">/locations</a></li>
-      <li><a href="/track/MIAMI-001">/track/MIAMI-001</a></li>
-    </ul>
-  `);
 });
 
 export default app;
