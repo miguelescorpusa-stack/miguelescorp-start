@@ -3,10 +3,12 @@ import cors from 'cors';
 import { query } from './db.js';
 
 const app = express();
+
+// 🧩 Middlewares
 app.use(express.json());
 app.use(cors());
 
-// 🏁 Página principal (evita el "Cannot GET /")
+// 🏁 Página raíz (para evitar "Cannot GET /")
 app.get('/', (_req, res) => {
   res.send(`
     <h2>🚚 Migueles Corp Backend Activo</h2>
@@ -15,6 +17,7 @@ app.get('/', (_req, res) => {
       <li><a href="/health">/health</a></li>
       <li><a href="/shipments">/shipments</a></li>
       <li><a href="/locations">/locations</a></li>
+      <li><a href="/driver">/driver</a></li>
       <li><a href="/track/TEST-001">/track/TEST-001</a></li>
     </ul>
   `);
@@ -66,6 +69,7 @@ app.get('/track/:ref_code', async (req, res) => {
       'SELECT * FROM shipments WHERE ref_code = $1',
       [ref_code]
     );
+
     if (shipment.rowCount === 0) {
       return res.status(404).json({ ok: false, error: 'shipment_not_found' });
     }
