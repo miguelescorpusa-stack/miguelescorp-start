@@ -5,7 +5,16 @@ import { query } from './db.js';
 
 const app = express();
 
-// CORS abierto (si quieres, luego limitamos al dominio del front)
+// ---- CORS: permitir desde cualquier origen (frontend local o dominio) ----
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*'); // o fija tu dominio si quieres
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
+// (mantengo cors() igualmente; no estorba)
 app.use(cors());
 app.use(express.json());
 
@@ -55,7 +64,7 @@ app.get('/locations', async (_req, res) => {
 app.get('/driver', async (_req, res) => {
   try {
     const result = await query('SELECT * FROM drivers ORDER BY id ASC');
-  res.json({ ok: true, drivers: result.rows });
+    res.json({ ok: true, drivers: result.rows });
   } catch (err) {
     console.error('Error al obtener drivers:', err);
     res.status(500).json({ ok: false, error: 'database_error' });
