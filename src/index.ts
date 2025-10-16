@@ -55,7 +55,7 @@ app.get('/health', (_req, res) => {
 });
 
 // ===== Públicas (lectura) =====
-app.post('/shipments', async (req, res) => { ... })
+app.get('/shipments', async (_req, res) => {
   try {
     const result = await query('SELECT * FROM shipments ORDER BY created_at DESC');
     res.json({ ok: true, shipments: result.rows });
@@ -64,6 +64,30 @@ app.post('/shipments', async (req, res) => { ... })
     res.status(500).json({ ok: false, error: 'database_error' });
   }
 });
+
+// ===== NUEVO: Pública (escritura sin token) =====
+app.post('/shipments', async (req, res) => {
+  const { ref_code, tracking_number, status } = req.body || {};
+  if (!ref_code || !tracking_number || !status) {
+    return res.status(400).json({ ok: false, error: 'missing_fields' });
+  }
+
+  try {
+    const result = await query(
+      `INSERT INTO shipments (ref_code, tracking_number, status)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [ref_code, tracking_number, status]
+    );
+
+    res.status(201).json({ ok: true, shipment: result.rows[0] });
+  } catch (err: any) {
+    console.error('Error POST /shipments:', err);
+    res.status(500).json({ ok: false, error: 'database_error' });
+  }
+});
+
+// ===== Públicas (otras lecturas) =====
 app.get('/locations', async (_req, res) => {
   try {
     const result = await query('SELECT * FROM locations ORDER BY ts DESC');
@@ -162,7 +186,7 @@ app.post('/admin/locations/add-by-address', async (req, res) => {
       [shipment_ref, lat, lon]
     );
     res.json({ ok: true, lat, lon });
-  } catch (err:any) {
+  } catch (err: any) {
     console.error('Error add-by-address:', err);
     res.status(500).json({ ok: false, error: err.message || 'geocode_failed' });
   }
