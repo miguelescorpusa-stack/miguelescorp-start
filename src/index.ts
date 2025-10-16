@@ -55,7 +55,7 @@ app.get('/health', (_req, res) => {
 });
 
 // ===== Públicas (lectura) =====
-app.get('/shipments', async (_req, res) => {
+app.post('/shipments', async (req, res) => { ... })
   try {
     const result = await query('SELECT * FROM shipments ORDER BY created_at DESC');
     res.json({ ok: true, shipments: result.rows });
