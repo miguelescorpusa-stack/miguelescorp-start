@@ -124,32 +124,97 @@ app.get('/track/:ref_code', async (req, res) => {
   }
 });
 
-// ===== Admin (escritura) — protegido con token =====
-app.get('/admin/ping', (req, res) => {
-  if (!isAuthorized(req)) return res.status(401).json({ ok: false, error: 'unauthorized' });
-  res.json({ ok: true, msg: 'admin ok' });
-});
-
-// Upsert de envío
-app.post('/admin/shipments/upsert', async (req, res) => {
-  if (!isAuthorized(req)) return res.status(401).json({ ok: false, error: 'unauthorized' });
-  const { ref_code, tracking_number, status } = req.body || {};
-  if (!ref_code || !tracking_number || !status) {
-    return res.status(400).json({ ok: false, error: 'missing_fields' });
-  }
+// ===== Pública (escritura sin token) — Upsert por tracking_seq con rotación 1..10000 =====
+app.post('/shipments', async (req, res) => {
   try {
-    await query(
-      `INSERT INTO shipments (ref_code, tracking_number, status)
-       VALUES ($1,$2,$3)
-       ON CONFLICT (ref_code)
-       DO UPDATE SET tracking_number = EXCLUDED.tracking_number,
-                     status = EXCLUDED.status`,
-      [ref_code, tracking_number, status]
+    let { ref_code, status, destination_address, tracking_seq } = req.body || {};
+    if (!ref_code || !status || !destination_address) {
+      return res.status(400).json({ ok: false, error: 'missing_fields' });
+    }
+
+    // 1) Geocodificar destino
+    const { lat: dest_lat, lon: dest_lon } = await geocode(destination_address);
+
+    // 2) Asignar tracking_seq si no vino
+    if (!tracking_seq) {
+      // lee y avanza puntero; rota 1..10000
+      const row = await query('SELECT pointer FROM next_seq WHERE id=1');
+      let p = Number(row.rows[0]?.pointer ?? 0);
+      let attempts = 0;
+      let candidate = 0;
+
+      while (attempts < 10000) {
+        p = (p % 10000) + 1;
+        const check = await query(
+          "SELECT 1 FROM shipments WHERE tracking_seq = $1 AND status <> 'delivered' LIMIT 1",
+          [p]
+        );
+        if (check.rowCount === 0) { candidate = p; break; }
+        attempts++;
+      }
+      if (!candidate) return res.status(409).json({ ok: false, error: 'no_free_seq' });
+
+      tracking_seq = candidate;
+      await query('UPDATE next_seq SET pointer = $1 WHERE id = 1', [tracking_seq]);
+    } else {
+      // validar rango
+      tracking_seq = Number(tracking_seq);
+      if (!(tracking_seq >= 1 && tracking_seq <= 10000)) {
+        return res.status(400).json({ ok: false, error: 'seq_out_of_range' });
+      }
+      // si viene forzado, verificar que no esté ocupado por un envío activo
+      const active = await query(
+        "SELECT 1 FROM shipments WHERE tracking_seq = $1 AND status <> 'delivered' LIMIT 1",
+        [tracking_seq]
+      );
+      if (active.rowCount > 0) {
+        return res.status(409).json({ ok: false, error: 'seq_in_use' });
+      }
+    }
+
+    // 3) Intentar reutilizar si existe ese seq pero entregado; si no, crear nuevo
+    const existing = await query(
+      'SELECT id FROM shipments WHERE tracking_seq = $1 ORDER BY created_at DESC LIMIT 1',
+      [tracking_seq]
     );
-    res.json({ ok: true });
+
+    let result;
+    if (existing.rowCount > 0) {
+      // reutiliza registro anterior (entregado) actualizando datos
+      result = await query(
+        `UPDATE shipments
+           SET ref_code = $1,
+               tracking_number = CONCAT('MC-', LPAD($2::text, 6, '0')), -- opcional si usas ambos
+               status = $3,
+               destination_address = $4,
+               dest_lat = $5,
+               dest_lon = $6,
+               created_at = NOW()
+         WHERE id = $7
+         RETURNING *`,
+        [ref_code, tracking_seq, status, destination_address, dest_lat, dest_lon, existing.rows[0].id]
+      );
+      return res.status(200).json({ ok: true, shipment: result.rows[0] });
+    } else {
+      // crear nuevo
+      result = await query(
+        `INSERT INTO shipments
+           (ref_code, tracking_seq, tracking_number, status, destination_address, dest_lat, dest_lon)
+         VALUES
+           ($1, $2, CONCAT('MC-', LPAD($2::text, 6, '0')), $3, $4, $5, $6)
+         RETURNING *`,
+        [ref_code, tracking_seq, status, destination_address, dest_lat, dest_lon]
+      );
+      return res.status(201).json({ ok: true, shipment: result.rows[0] });
+    }
   } catch (err) {
-    console.error('Error upsert shipment:', err);
-    res.status(500).json({ ok: false, error: 'database_error' });
+    console.error('Error POST /shipments:', err);
+    // 409 si index parcial impide duplicado activo
+    const msg = (err as any)?.message || '';
+    if (msg.includes('ux_shipments_tracking_seq_active')) {
+      return res.status(409).json({ ok: false, error: 'seq_in_use' });
+    }
+    return res.status(500).json({ ok: false, error: 'database_error' });
   }
 });
 
